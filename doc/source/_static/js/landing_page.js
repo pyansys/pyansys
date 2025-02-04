@@ -51,12 +51,15 @@ function displayFamilies(familyCounts) {
   familiesContainer.innerHTML = "";
 
   const sortedFamilies = Object.keys(familyCounts).sort();
+  const maxVisible = 5; // Show only first 5 initially
+  let showMoreClicked = false;
 
-  sortedFamilies.forEach((family) => {
+  sortedFamilies.forEach((family, index) => {
     const familyCount = familyCounts[family];
 
     const familyRow = document.createElement("div");
     familyRow.className = "family-row";
+    if (index >= maxVisible) familyRow.style.display = "none"; // Hide extra items initially
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
@@ -67,15 +70,22 @@ function displayFamilies(familyCounts) {
     familyName.className = "family-name";
     familyName.textContent = family;
 
-    const familyCountElem = document.createElement("span");
-    familyCountElem.className = "family-count";
-    familyCountElem.textContent = `(${familyCount})`;
-
     familyRow.appendChild(checkbox);
     familyRow.appendChild(familyName);
-    //familyRow.appendChild(familyCountElem);
 
     familiesContainer.appendChild(familyRow);
+  });
+
+  // Handle "Show more" click
+  const showMoreButton = document.querySelector(".product-families .show-more");
+  showMoreButton.addEventListener("click", () => {
+    if (!showMoreClicked) {
+      document
+        .querySelectorAll(".family-row")
+        .forEach((row) => (row.style.display = "flex"));
+      showMoreButton.style.display = "none"; // Hide "Show more" after clicking
+      showMoreClicked = true;
+    }
   });
 }
 
@@ -84,12 +94,15 @@ function displayTags(tagCounts) {
   tagsContainer.innerHTML = "";
 
   const sortedTags = Object.keys(tagCounts).sort();
+  const maxVisible = 5; // Show only first 5 initially
+  let showMoreClicked = false;
 
-  sortedTags.forEach((tag) => {
+  sortedTags.forEach((tag, index) => {
     const tagCount = tagCounts[tag];
 
     const tagRow = document.createElement("div");
     tagRow.className = "tag-row";
+    if (index >= maxVisible) tagRow.style.display = "none"; // Hide extra items initially
 
     const checkbox = document.createElement("input");
     checkbox.type = "checkbox";
@@ -100,19 +113,34 @@ function displayTags(tagCounts) {
     tagName.className = "tag-name";
     tagName.textContent = tag;
 
-    const tagCountElem = document.createElement("span");
-    tagCountElem.className = "tag-count";
-    tagCountElem.textContent = `(${tagCount})`;
-
     tagRow.appendChild(checkbox);
     tagRow.appendChild(tagName);
-    //tagRow.appendChild(tagCountElem);
 
     tagsContainer.appendChild(tagRow);
+  });
+
+  // Handle "Show more" click
+  const showMoreButton = document.querySelector(".product-tags .show-more");
+  showMoreButton.addEventListener("click", () => {
+    if (!showMoreClicked) {
+      document
+        .querySelectorAll(".tag-row")
+        .forEach((row) => (row.style.display = "flex"));
+      showMoreButton.style.display = "none"; // Hide "Show more" after clicking
+      showMoreClicked = true;
+    }
   });
 }
 
 function handleFamilySelection() {
+  applyFilters();
+}
+
+function handleTagSelection() {
+  applyFilters();
+}
+
+function applyFilters() {
   const selectedFamilies = Array.from(
     document.querySelectorAll(
       '#product-families-list input[type="checkbox"]:checked',
@@ -121,21 +149,6 @@ function handleFamilySelection() {
     checkbox.id.replace("family-", "").replace("\\ ", "-").toLowerCase(),
   );
 
-  console.log("Selected families:", selectedFamilies);
-
-  const projectCards = document.querySelectorAll(".project-card");
-
-  projectCards.forEach((card) => {
-    const family = card.getAttribute("data-family").toLowerCase();
-    console.log("Family:", family);
-    card.style.display =
-      selectedFamilies.length === 0 || selectedFamilies.includes(family)
-        ? "flex"
-        : "none";
-  });
-}
-
-function handleTagSelection() {
   const selectedTags = Array.from(
     document.querySelectorAll(
       '#product-tags-list input[type="checkbox"]:checked',
@@ -144,35 +157,37 @@ function handleTagSelection() {
     checkbox.id.replace("tag-", "").replace("\\ ", "-").toLowerCase(),
   );
 
+  console.log("Selected families:", selectedFamilies);
   console.log("Selected tags:", selectedTags);
 
   const projectCards = document.querySelectorAll(".project-card");
 
   projectCards.forEach((card) => {
+    const family = card.getAttribute("data-family").toLowerCase();
     const rawTags = card.getAttribute("data-tags");
 
-    if (!rawTags) {
-      card.style.display = "none";
-      return;
-    }
-
-    // Parse the data-tags string
     let cardTags = [];
-    try {
-      cardTags = JSON.parse(rawTags.replace(/'/g, '"'));
-    } catch (error) {
-      console.error("Error parsing data-tags:", rawTags, error);
-      card.style.display = "none";
-      return;
+    if (rawTags) {
+      try {
+        cardTags = JSON.parse(rawTags.replace(/'/g, '"')).map((tag) =>
+          tag.toLowerCase(),
+        );
+      } catch (error) {
+        console.error("Error parsing data-tags:", rawTags, error);
+      }
     }
 
-    const cardTagsLower = cardTags.map((tag) => tag.toLowerCase());
-    const hasMatchingTag = selectedTags.some((tag) =>
-      cardTagsLower.includes(tag),
-    );
+    // Check if the card matches the selected families
+    const matchesFamily =
+      selectedFamilies.length === 0 || selectedFamilies.includes(family);
 
-    card.style.display =
-      selectedTags.length === 0 || hasMatchingTag ? "flex" : "none";
+    // Check if the card matches the selected tags
+    const matchesTag =
+      selectedTags.length === 0 ||
+      selectedTags.some((tag) => cardTags.includes(tag));
+
+    // Show only if both family & tag filters match (or if no filter is applied)
+    card.style.display = matchesFamily && matchesTag ? "flex" : "none";
   });
 }
 
